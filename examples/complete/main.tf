@@ -2,63 +2,38 @@ provider "aws" {
   region = local.region
 }
 
-data "aws_availability_zones" "available" {
-  # Exclude local zones
-  filter {
-    name   = "opt-in-status"
-    values = ["opt-in-not-required"]
-  }
-}
-
 locals {
-  region = "us-east-1"
-  name   = "<TODO>-ex-${basename(path.cwd)}"
 
-  vpc_cidr = "10.0.0.0/16"
-  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+  region      = "us-east-1"
+  account_id  = "123456789012" # Replace with your AWS Account ID
+  role_name   = "github-actions-oidc"
+  github_org  = "drizzle-ai-systems"
+  github_repo = "terraform-aws-oidc-github-actions"
+
+  policy_arns = [
+    "arn:aws:iam::aws:policy/AdministratorAccess" # Example policy ARN; replace with least privilege policies as needed                    
+  ]
 
   tags = {
-    Name       = local.name
-    Example    = local.name
-    Repository = "https://github.com/clowdhaus/terraform-aws-<TODO>"
+    Example    = local.role_name
+    GithubRepo = "terraform-aws-oidc-github-actions"
+    GithubOrg  = "drizzle-ai-systems"
   }
+
 }
 
 ################################################################################
-# <TODO_EXPANDED> Module
+# AWS GitHub Actions OIDC Module
 ################################################################################
 
-module "<TODO_UNDER>" {
-  source = "../.."
+module "aws_gha_oidc" {
+  source = "../../"
 
-  create = false
+  aws_account_id = local.account_id
+  github_org     = local.github_org
+  github_repo    = local.github_repo
+  role_name      = local.role_name
+  policy_arns    = local.policy_arns
+  tags           = local.tags
 
-  tags = local.tags
-}
-
-module "<TODO_UNDER>_disabled" {
-  source = "../.."
-
-  create = false
-}
-
-################################################################################
-# Supporting Resources
-################################################################################
-
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
-
-  name = local.name
-  cidr = local.vpc_cidr
-
-  azs             = local.azs
-  private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
-  public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 48)]
-
-  enable_nat_gateway = true
-  single_nat_gateway = true
-
-  tags = local.tags
 }
