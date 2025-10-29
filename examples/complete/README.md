@@ -1,8 +1,6 @@
 # Complete AWS <TODO_EXPANDED> Example
 
-Configuration in this directory creates:
-
-- <XXX>
+Configuration in this directory deploys a complete example of the AWS OIDC GitHub Actions module with all available features enabled.
 
 ## Usage
 
@@ -21,29 +19,22 @@ Note that this example may create resources which will incur monetary charges on
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.90 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.35 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 
 ## Providers
 
-| Name | Version |
-|------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.90 |
+No providers.
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_<TODO_UNDER>"></a> [<TODO\_UNDER>](#module\_<TODO\_UNDER>) | ../.. | n/a |
-| <a name="module_<TODO_UNDER>_disabled"></a> [<TODO\_UNDER>\_disabled](#module\_<TODO\_UNDER>\_disabled) | ../.. | n/a |
-| <a name="module_vpc"></a> [vpc](#module\_vpc) | terraform-aws-modules/vpc/aws | ~> 5.0 |
+| <a name="module_aws_gha_oidc"></a> [aws\_gha\_oidc](#module\_aws\_gha\_oidc) | ../../ | n/a |
 
 ## Resources
 
-| Name | Type |
-|------|------|
-| [aws_availability_zones.available](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/availability_zones) | data source |
+No resources.
 
 ## Inputs
 
@@ -51,7 +42,7 @@ No inputs.
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_github_actions_oidc_role_arn"></a> [github\_actions\_oidc\_role\_arn](#output\_github\_actions\_oidc\_role\_arn) | The ARN of the created IAM role for GitHub Actions. |
 <!-- END_TF_DOCS -->
-
-Apache-2.0 Licensed. See [LICENSE](https://github.com/clowdhaus/terraform-aws-<TODO>/blob/main/LICENSE).
