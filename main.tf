@@ -54,5 +54,4 @@ resource "aws_iam_role_policy_attachment" "oidc_role_attach_policies" {
   policy_arn = var.policy_arns[count.index]
   role       = aws_iam_role.oidc_role.name
 
-  depends_on = [aws_iam_role.oidc_role]
 }
