@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "oidc_role_assume_role_policy" {
       test = "StringLike"
       values = [
         for repo in var.github_repositories :
-        "repo:${repo}"
+        "repo:${repo}:*"
       ]
       variable = "token.actions.githubusercontent.com:sub"
     }
