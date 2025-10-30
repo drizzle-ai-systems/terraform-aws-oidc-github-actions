@@ -12,7 +12,7 @@ The module creates the necessary AWS resources to establish trust between GitHub
 - Enables secure, temporary credential access without stored secrets
 - Follows AWS security best practices for CI/CD authentication
 
-## Example to use the new role wiht your Github Actions Pipelines / Workflows
+## Example to use the new role with your Github Actions Pipelines / Workflows
 
 ```yaml
 name: AWS ECR Pipeline
