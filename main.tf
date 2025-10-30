@@ -46,8 +46,6 @@ resource "aws_iam_role" "oidc_role" {
   assume_role_policy   = data.aws_iam_policy_document.oidc_role_assume_role_policy.json
 
   tags = var.tags
-
-  depends_on = [aws_iam_openid_connect_provider.github_actions]
 }
 
 resource "aws_iam_role_policy_attachment" "oidc_role_attach_policies" {
