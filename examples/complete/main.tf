@@ -4,14 +4,18 @@ provider "aws" {
 
 locals {
 
-  region      = "us-east-1"
-  account_id  = "123456789012" # Replace with your AWS Account ID
-  role_name   = "github-actions-oidc"
-  github_org  = "drizzle-ai-systems"
-  github_repo = "terraform-aws-oidc-github-actions"
+  region               = "us-east-1"
+  role_name            = "github-actions-oidc"
+  role_description     = "IAM Role for GitHub Actions OIDC Federation"
+  max_session_duration = 3600
+  github_repositories  = ["drizzle-ai-systems/terraform-aws-oidc-github-actions"] # List of repositories or orgs
 
   policy_arns = [
-    "arn:aws:iam::aws:policy/AdministratorAccess" # Example policy ARN; replace with least privilege policies as needed                    
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly" # Example policy ARN; replace with least privilege policies as needed                    
+  ]
+
+  thumbprint_list = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1" # Current GitHub's OIDC thumbprint
   ]
 
   tags = {
@@ -29,11 +33,12 @@ locals {
 module "aws_gha_oidc" {
   source = "../../"
 
-  aws_account_id = local.account_id
-  github_org     = local.github_org
-  github_repo    = local.github_repo
-  role_name      = local.role_name
-  policy_arns    = local.policy_arns
-  tags           = local.tags
+  github_repositories  = local.github_repositories
+  thumbprint_list      = local.thumbprint_list
+  role_description     = local.role_description
+  max_session_duration = local.max_session_duration
+  role_name            = local.role_name
+  policy_arns          = local.policy_arns
+  tags                 = local.tags
 
 }

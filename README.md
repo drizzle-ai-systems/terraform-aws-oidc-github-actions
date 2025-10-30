@@ -12,51 +12,36 @@ The module creates the necessary AWS resources to establish trust between GitHub
 - Enables secure, temporary credential access without stored secrets
 - Follows AWS security best practices for CI/CD authentication
 
-## Example to use the new role wiht your Github Actions Pipelines / Workflows
+## Example to use the new role with your Github Actions Pipelines / Workflows
 
 ```yaml
-name: Terraform Github Actions Pipeline
+name: AWS ECR Pipeline
 
 on:
-  workflow_call:
-    inputs:
-env:
-
-  TF_LOG: INFO
-    AWS_REGION: <your_aws_region>
-    AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }} 
-    ROLE_NAME: ${{ secrets.ROLE_NAME }} # The OIDC gha role name created by this module - add as a GitHub repository secret
-
+  push:
+    branches:
+      - main
+      - feat.*
 
 jobs:
-  terraform:
+  deploy:
     name: deploy
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ inputs.working-directory }}
-
+    permissions:
+      id-token: write
+      contents: read
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }} # OIDC Role ARN
+          aws-region: us-west-2
 
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.ROLE_NAME }} # your OIDC role now used for secure AWS authentication
-          aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.9.0
-
-    - name: Terraform Init
-      run: terraform init
-
-    - name: Terraform Plan
-      id: plan
-      run: terraform plan -no-color -out=tf.plan
       ... # 
 ```
 
@@ -65,26 +50,46 @@ jobs:
 See [`examples`](https://github.com/clowdhaus/terraform-aws-oidc-github-actions/tree/main/examples) directory for working examples to reference:
 
 ```hcl
-module "oidc_github_actions" {
-  source = "drizzle-ai-systems/oidc-github-actions/aws"
+locals {
 
-  region      = "us-east-1"
-  account_id  = "123456789012" # Replace with your AWS Account ID
-  role_name   = "github-actions-oidc"
-  github_org  = "drizzle-ai-systems" # Replace with your Github Org name or your Github User Name
-  github_repo = "terraform-aws-oidc-github-actions" # Replace with your Githu repository name
-
+  region               = "us-west-2"
+  role_name            = "github-actions-oidc"
+  role_description     = "IAM Role for GitHub Actions OIDC Federation"
+  max_session_duration = 3600
+  github_repositories  = ["drizzle-ai-systems/terraform-aws-oidc-github-actions"] # List of repositories or orgs
   policy_arns = [
-    "arn:aws:iam::aws:policy/AdministratorAccess" # Example policy ARN; replace with least privilege policies as needed                    
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly" # Example policy ARN; replace with least privilege policies as needed                    
   ]
-  
-  # Use your own tags
+
+  thumbprint_list = [
+    "6938fd4d98bab03faadb97b34396831e3780aea1" # Current GitHub's OIDC thumbprint
+  ]
+
   tags = {
-    Example    = local.name
+    Example    = local.role_name
     GithubRepo = "terraform-aws-oidc-github-actions"
     GithubOrg  = "drizzle-ai-systems"
   }
+
 }
+
+################################################################################
+# AWS GitHub Actions OIDC Module
+################################################################################
+
+module "aws_gha_oidc" {
+  source = "../../"
+
+  github_repositories  = local.github_repositories
+  thumbprint_list      = local.thumbprint_list
+  role_description     = local.role_description
+  max_session_duration = local.max_session_duration
+  role_name            = local.role_name
+  policy_arns          = local.policy_arns
+  tags                 = local.tags
+
+}
+
 ```
 
 ## Examples
@@ -116,23 +121,27 @@ No modules.
 | Name | Type |
 |------|------|
 | [aws_iam_openid_connect_provider.github_actions](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_openid_connect_provider) | resource |
-| [aws_iam_role.github_actions_oidc](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.oidc_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy_attachment.oidc_role_attach_policies](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_policy_document.oidc_role_assume_role_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_aws_account_id"></a> [aws\_account\_id](#input\_aws\_account\_id) | The AWS account ID where the role will be created. | `string` | n/a | yes |
-| <a name="input_github_org"></a> [github\_org](#input\_github\_org) | The name of your GitHub organization / User Name. | `string` | n/a | yes |
-| <a name="input_github_repo"></a> [github\_repo](#input\_github\_repo) | The name of your GitHub repository. | `string` | n/a | yes |
+| <a name="input_github_repositories"></a> [github\_repositories](#input\_github\_repositories) | GitHub repository identifiers in the format 'org/repo' or 'org/*' for all repositories in an organization. Supports single or multiple repositories/orgs. | `list(string)` | n/a | yes |
+| <a name="input_max_session_duration"></a> [max\_session\_duration](#input\_max\_session\_duration) | The maximum session duration (in seconds) for the IAM role. | `number` | `3600` | no |
 | <a name="input_policy_arns"></a> [policy\_arns](#input\_policy\_arns) | A list of IAM policy ARNs to attach to the role. You almost always want to attach policies | `list(string)` | `[]` | no |
+| <a name="input_role_description"></a> [role\_description](#input\_role\_description) | The description of the OIDC Github Actions IAM role. | `string` | `"IAM role for GitHub Actions OIDC federation"` | no |
 | <a name="input_role_name"></a> [role\_name](#input\_role\_name) | The name of the IAM role. | `string` | `"github-actions-oidc-role"` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | (Optional) A map of tags to assign to the object. If configured with a provider default\_tags configuration block present, tags with matching keys will overwrite those defined at the provider-level. | `map(string)` | `{}` | no |
+| <a name="input_thumbprint_list"></a> [thumbprint\_list](#input\_thumbprint\_list) | A list of thumbprints for the OIDC provider. | `list(string)` | <pre>[<br/>  "6938fd4d98bab03faadb97b34396831e3780aea1"<br/>]</pre> | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
+| <a name="output_oidc_provider_arn"></a> [oidc\_provider\_arn](#output\_oidc\_provider\_arn) | OIDC provider ARN |
 | <a name="output_role_arn"></a> [role\_arn](#output\_role\_arn) | The ARN of the created IAM role for GitHub Actions. |
 <!-- END_TF_DOCS -->
 
